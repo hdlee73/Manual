@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "description": "동기화 대상 법령 목록. sync_laws.py가 이 파일을 읽어 법제처 Open API에서 최신 원문을 수집한다. code는 laws_data.json·manual_checklist.json의 조문 키 접두어로 쓰인다.",
+  "families": [
+    { "id": "CMA", "name": "자본시장법", "full_name": "자본시장과 금융투자업에 관한 법률", "color": "#2563eb" },
+    { "id": "GOV", "name": "지배구조법", "full_name": "금융회사의 지배구조에 관한 법률", "color": "#7c3aed" },
+    { "id": "FCP", "name": "금소법", "full_name": "금융소비자 보호에 관한 법률", "color": "#0d9488" }
+  ],
+  "levels": [
+    { "id": "L", "name": "법률" },
+    { "id": "D", "name": "시행령" },
+    { "id": "R", "name": "시행규칙" },
+    { "id": "S", "name": "감독규정" }
+  ],
+  "sources": [
+    { "code": "CMA-L", "family": "CMA", "level": "L", "target": "law", "name": "자본시장과 금융투자업에 관한 법률" },
+    { "code": "CMA-D", "family": "CMA", "level": "D", "target": "law", "name": "자본시장과 금융투자업에 관한 법률 시행령" },
+    { "code": "CMA-R", "family": "CMA", "level": "R", "target": "law", "name": "자본시장과 금융투자업에 관한 법률 시행규칙" },
+    { "code": "CMA-S", "family": "CMA", "level": "S", "target": "admrul", "name": "금융투자업규정" },
+    { "code": "GOV-L", "family": "GOV", "level": "L", "target": "law", "name": "금융회사의 지배구조에 관한 법률" },
+    { "code": "GOV-D", "family": "GOV", "level": "D", "target": "law", "name": "금융회사의 지배구조에 관한 법률 시행령" },
+    { "code": "GOV-S", "family": "GOV", "level": "S", "target": "admrul", "name": "금융회사 지배구조 감독규정" },
+    { "code": "FCP-L", "family": "FCP", "level": "L", "target": "law", "name": "금융소비자 보호에 관한 법률" },
+    { "code": "FCP-D", "family": "FCP", "level": "D", "target": "law", "name": "금융소비자 보호에 관한 법률 시행령" },
+    { "code": "FCP-S", "family": "FCP", "level": "S", "target": "admrul", "name": "금융소비자 보호에 관한 감독규정" }
+  ]
+}

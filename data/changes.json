@@ -1,0 +1,5 @@
+{
+  "schema_version": "1.0",
+  "description": "sync_laws.py가 감지한 조문 변경 이력(최신이 뒤). type: amended(개정) / added(신규 수집) / removed(원문에서 사라짐)",
+  "changes": []
+}
