@@ -1,0 +1,58 @@
+name: 법령 동기화 (법제처 Open API)
+
+on:
+  schedule:
+    - cron: "0 21 * * 0"   # 매주 월요일 06:00 KST
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "매뉴얼 참조 조문뿐 아니라 전체 조문 저장"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-laws
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 파서·데이터 무결성 테스트
+        run: python -m unittest discover -s scripts/tests -v
+
+      - name: 법령 수집 및 개정 Diff
+        id: sync
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}   # 인증키는 Secrets 에만 보관 (로그 자동 마스킹)
+        run: |
+          if [ -z "$LAW_OC" ]; then
+            echo "::error::저장소 Settings → Secrets and variables → Actions 에 LAW_OC 를 등록하세요."
+            exit 1
+          fi
+          python scripts/sync_laws.py ${{ inputs.all && '--all' || '' }}
+
+      - name: 데이터 무결성 재확인
+        run: python -m unittest discover -s scripts/tests -k DataIntegrity -v
+
+      - name: 변경사항 커밋
+        run: |
+          if git diff --quiet -- data/; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/laws_data.json data/changes.json
+          git commit -m "chore(data): 법령 동기화 $(TZ=Asia/Seoul date +%F) (개정 ${{ steps.sync.outputs.amended || 0 }}건)"
+          git push
