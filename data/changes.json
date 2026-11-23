@@ -1,5 +1,42 @@
 {
-  "schema_version": "1.0",
-  "description": "sync_laws.py가 감지한 조문 변경 이력(최신이 뒤). type: amended(개정) / added(신규 수집) / removed(원문에서 사라짐)",
-  "changes": []
+ "schema_version": "1.0",
+ "description": "sync_laws.py가 감지한 조문 변경 이력(최신이 뒤). type: amended(개정) / added(신규 수집) / removed(원문에서 사라짐)",
+ "changes": [
+  {
+   "detected_at": "2026-11-23",
+   "key": "CMA-L:제420조",
+   "title": "금융투자업자에 대한 조치",
+   "type": "added"
+  },
+  {
+   "detected_at": "2026-11-23",
+   "key": "CMA-L:제449조",
+   "title": "과태료",
+   "type": "added"
+  },
+  {
+   "detected_at": "2026-11-23",
+   "key": "CMA-D:제66조의2",
+   "title": "최선집행의무",
+   "type": "added"
+  },
+  {
+   "detected_at": "2026-11-23",
+   "key": "CMA-D:제68조",
+   "title": "불건전 영업행위의 금지",
+   "type": "added"
+  },
+  {
+   "detected_at": "2026-11-23",
+   "key": "FCP-L:제57조",
+   "title": "과징금",
+   "type": "added"
+  },
+  {
+   "detected_at": "2026-11-23",
+   "key": "FCP-L:제69조",
+   "title": "과태료",
+   "type": "added"
+  }
+ ]
 }
