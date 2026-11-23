@@ -7,6 +7,7 @@
 - 대상 업권(MVP): **자산운용업(집합투자업)**, **투자매매·중개업**
 - 점검 항목 24개 · 연계 조문 44개 (2026-11-21 국가법령정보 기준으로 조문 번호·원문 확인)
 - 서버 없음: GitHub Pages / Cloudflare Pages 에 그대로 올릴 수 있는 정적 파일
+- 배포 주소: **https://hdlee73.github.io/Manual/** (`main` 반영·법령 동기화 완료 시 `.github/workflows/pages.yml` 이 자동 재배포)
 
 ## 주요 기능
 

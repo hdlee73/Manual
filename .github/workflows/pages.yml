@@ -1,0 +1,59 @@
+name: GitHub Pages 배포
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "assets/**"
+      - "data/**"
+      - ".github/workflows/pages.yml"
+  # 법령 동기화 커밋은 GITHUB_TOKEN 으로 push 되어 push 트리거가 동작하지 않으므로 완료 후 재배포
+  workflow_run:
+    workflows: ["법령 동기화 (법제처 Open API)"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # workflow_run 시 동기화 커밋이 반영된 최신 main 사용
+
+      - name: 데이터 JSON 유효성 검사
+        run: |
+          for f in data/*.json; do
+            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$f" || { echo "::error::$f JSON 오류"; exit 1; }
+          done
+
+      - name: 공개 파일만 모아 사이트 구성
+        run: |
+          mkdir -p _site
+          cp index.html .nojekyll _site/
+          cp -r assets data _site/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
