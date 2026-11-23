@@ -189,20 +189,44 @@ def parse_law_articles(root: ET.Element) -> dict[str, dict]:
     return out
 
 
-ADM_RE = re.compile(r"^\s*(제\s*\d+(?:\s*-\s*\d+)*\s*조(?:\s*의\s*\d+)?)\s*(?:\(([^)]*)\))?\s*(.*)$", re.S)
+# 행정규칙 조문 머리: 줄 맨 앞의 '제4-6조(제목)' · '제4-17조의3' — 본문 속 '제3-11조제1항에 따른'은 제외
+ADM_HEAD_RE = re.compile(
+    r"^[ \t\u3000]*(제\s*\d+(?:\s*-\s*\d+)*\s*조(?:\s*의\s*\d+)?)(?=[ \t\u3000]*(?:\(|$|[^\S\n]))"
+    r"[ \t\u3000]*(?:\(([^)\n]*)\))?",
+    re.M,
+)
+# 편·장·절·관 제목 줄 (조문 본문에서 제거)
+ADM_SECTION_RE = re.compile(r"^[ \t\u3000]*제\s*\d+\s*(?:편|장|절|관)(?:\s|$).*$", re.M)
 
 
 def parse_admrul_articles(root: ET.Element) -> dict[str, dict]:
-    """lawService.do?target=admrul 응답 → {'제4-6조': {...}} (조문내용 문자열 단위)"""
+    """lawService.do?target=admrul 응답 → {'제4-6조': {...}}
+
+    응답에 따라 <조문내용> 이 조문마다 하나씩 오기도 하고, 여러 조문이 한 덩어리로 오기도 한다.
+    모든 <조문내용> 텍스트를 이어 붙인 뒤 줄 맨 앞의 조문 머리를 기준으로 나눈다.
+    """
+    chunks = [(el.text or "") for el in root.iter("조문내용")]
+    blob = "\n".join(c.strip("\r\n") for c in chunks if c and c.strip())
     out: dict[str, dict] = {}
-    for el in root.iter("조문내용"):
-        raw = (el.text or "").strip()
-        m = ADM_RE.match(raw)
-        if not m:
-            continue  # 편·장·절 제목 등
+    heads = list(ADM_HEAD_RE.finditer(blob))
+    for i, m in enumerate(heads):
         label = re.sub(r"\s+", "", m.group(1))
-        out[label] = {"title": (m.group(2) or "").strip(), "text": normalize_text(m.group(3))}
+        if label in out:
+            continue  # 부칙 등 뒤쪽 중복 번호는 무시
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(blob)
+        body = ADM_SECTION_RE.sub("", blob[m.end():end])
+        out[label] = {"title": (m.group(2) or "").strip(), "text": normalize_text(body)}
     return out
+
+
+def describe_xml(root: ET.Element) -> str:
+    """조문 0건일 때 응답 구조만 요약 (본문·URL·인증키 미포함)"""
+    counts: dict[str, int] = {}
+    for el in root.iter():
+        counts[el.tag] = counts.get(el.tag, 0) + 1
+    top = sorted(counts.items(), key=lambda kv: -kv[1])[:12]
+    msg = next((txt(root, t) for t in ("message", "Message", "msg", "결과메시지") if txt(root, t)), "")
+    return f"root={root.tag} tags={top}" + (f" msg={msg[:80]}" if msg else "")
 
 
 def normalize_text(s: str) -> str:
@@ -223,8 +247,19 @@ def fetch_source(src: dict, oc: str) -> tuple[dict, dict[str, dict]]:
         body = http_get("lawService.do", {"target": "law", "type": "XML", "MST": meta["mst"]}, oc)
         arts = parse_law_articles(parse_xml(body, src["name"]))
     else:
-        body = http_get("lawService.do", {"target": "admrul", "type": "XML", "ID": meta["serial"]}, oc)
-        arts = parse_admrul_articles(parse_xml(body, src["name"]))
+        arts, diag = {}, ""
+        # ID=행정규칙일련번호 가 기본, 응답이 비면 LID=행정규칙ID(현행본) 로 재시도
+        for params in ({"ID": meta.get("serial")}, {"LID": meta.get("admRulId")}):
+            if not next(iter(params.values())):
+                continue
+            body = http_get("lawService.do", {"target": "admrul", "type": "XML", **params}, oc)
+            root = parse_xml(body, src["name"])
+            arts = parse_admrul_articles(root)
+            if arts:
+                break
+            diag = describe_xml(root)
+        if not arts:
+            raise SyncError(f"'{src['name']}' 조문 0건 — 응답 형식 변경 가능성 ({diag})")
     if not arts:
         raise SyncError(f"'{src['name']}' 조문 0건 — 응답 형식 변경 가능성")
     info = {k: v for k, v in meta.items() if k not in ("status", "note") and v}

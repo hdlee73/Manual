@@ -56,6 +56,28 @@ class ParseTest(unittest.TestCase):
         self.assertTrue(arts["제4-6조"]["text"].startswith("① 영 제50조"))
         self.assertEqual(arts["제4-17조의3"]["title"], "최선집행의무")
 
+    def test_admrul_single_blob(self):
+        """여러 조문이 <조문내용> 하나에 이어져 오는 응답"""
+        xml = """<AdmRulService><조문내용>제1편 총칙
+제1-1조(목적) 이 규정은 목적을 정한다.
+제2편 금융투자업
+제1장 인가
+제2-14조의2
+제2-26조(매매주문처리에 관한 내부통제)
+ ① 금융투자업자는 다음 사항을 포함하여야 한다.
+  1. 제3-11조제1항에 따른 방법으로 처리할 것
+제4-54조에 따른 기준은 별표와 같다.
+제2-27조(투자자 예탁재산의 보관에 관한 내부통제) ① 보관한다.</조문내용></AdmRulService>"""
+        arts = S.parse_admrul_articles(ET.fromstring(xml))
+        self.assertEqual(list(arts), ["제1-1조", "제2-14조의2", "제2-26조", "제2-27조"])
+        self.assertEqual(arts["제1-1조"]["text"], "이 규정은 목적을 정한다.")
+        self.assertEqual(arts["제2-14조의2"]["text"], "")
+        t = arts["제2-26조"]["text"]
+        self.assertTrue(t.startswith("① 금융투자업자는"))
+        self.assertIn("1. 제3-11조제1항에 따른", t)
+        self.assertIn("제4-54조에 따른 기준", t)
+        self.assertNotIn("제1장", arts["제1-1조"]["text"] + t)
+
     def test_jo_label(self):
         self.assertEqual(S.jo_label("045", ""), "제45조")
         self.assertEqual(S.jo_label("30", "03"), "제30조의3")
